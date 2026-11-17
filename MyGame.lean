@@ -14,33 +14,52 @@ def IsNash (g : Game A B) (a : A) (b : B) : Prop :=
 inductive Action where
   | cooperate
   | defect
+open Action
 
 -- 4. 囚人のジレンマ
 def prisonersDilemma : Game Action Action :=
   fun a b =>
     match a, b with
-    | Action.cooperate, Action.cooperate => (3, 3)
-    | Action.cooperate, Action.defect    => (1, 4)
-    | Action.defect, Action.cooperate    => (4, 1)
-    | Action.defect, Action.defect       => (2, 2)
+    | cooperate, cooperate => (3, 3)
+    | cooperate, defect    => (1, 4)
+    | defect, cooperate    => (4, 1)
+    | defect, defect       => (2, 2)
 
 -- 5. 定理：自白・自白は均衡である
-theorem defect_defect_isNash : IsNash prisonersDilemma Action.defect Action.defect :=
+theorem defect_defect_isNash : IsNash prisonersDilemma defect defect :=
   And.intro (fun a' =>
     match a' with
-    | Action.cooperate =>
+    | cooperate =>
       -- (cooperate, defect).fst ≤ (defect, defect).fst を示す
       -- calc を使って証明する
-      calc (prisonersDilemma Action.cooperate Action.defect).fst = 1 := rfl
-        _ ≤ 2                                                        := of_decide_eq_true rfl
-        _ = (prisonersDilemma Action.defect Action.defect).fst       := rfl
-    | Action.defect =>
+      calc (prisonersDilemma cooperate defect).fst = 1 := rfl
+        _ ≤ 2                                          := of_decide_eq_true rfl
+        _ = (prisonersDilemma defect defect).fst       := rfl
+    | defect =>
       -- (defect, defect).fst ≤ (defect, defect).fst を示す
       -- have を使って証明する
       have h: decide (2 ≤ 2) = true := rfl
       of_decide_eq_true h
   ) (fun b' =>
     match b' with
-    | Action.cooperate => of_decide_eq_true rfl
-    | Action.defect => of_decide_eq_true rfl
+    | cooperate => of_decide_eq_true rfl
+    | defect => of_decide_eq_true rfl
   )
+
+theorem defect_defect_isNash_2 :
+    IsNash prisonersDilemma defect defect := by
+  refine ⟨?_, ?_⟩
+  · intro a'
+    cases a' <;> decide
+  · intro b'
+    cases b' <;> decide
+
+def IsParetoImprovement (g : Game A B) (a : A) (b : B) (a' : A) (b' : B) : Prop :=
+  ((g a b).fst ≤ (g a' b').fst ∧ (g a b).snd < (g a' b').snd) ∨
+  ((g a b).fst < (g a' b').fst ∧ (g a b).snd ≤ (g a' b').snd)
+
+def IsParetoOptimal (g : Game A B) (a : A) (b : B) : Prop :=
+  (a' : A) → (b' : B) → IsParetoImprovement g a b a' b' → False
+-- ∀ a' b', ¬ IsParetoImprovement g a b a' b' を書き換えた
+-- ∀ a', … は fun a' => …
+-- ¬P は P → False
