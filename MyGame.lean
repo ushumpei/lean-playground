@@ -133,7 +133,7 @@ theorem cooperate_cooperate_is_pareto_optimal : IsParetoOptimal prisonersDilemma
       -- unfold IsParetoImprovement でゴールを計算可能な形に展開
       -- ¬ ((prisonersDilemma ... ∧ (prisonersDilemma ...)) ∨ (...))
       unfold IsParetoImprovement
-      -- 計算すると ¬ (3 ≤ 1)、これは 1 < 3 から導ける
+      -- 計算すると ¬ (3 < 1 ∨ 3 ≤ 1) より、ゴールが真になり終了
       decide
     )
     -- (3, 3) vs (2, 2)
