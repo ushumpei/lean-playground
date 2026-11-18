@@ -63,3 +63,78 @@ def IsParetoOptimal (g : Game A B) (a : A) (b : B) : Prop :=
 -- ∀ a' b', ¬ IsParetoImprovement g a b a' b' を書き換えた
 -- ∀ a', … は fun a' => …
 -- ¬P は P → False
+
+theorem defect_defect_is_not_pareto_optimal : ¬ IsParetoOptimal prisonersDilemma defect defect :=
+  fun h =>
+  have h'  := h cooperate cooperate
+  have h'' := Or.inl (
+    And.intro (by calc
+      (prisonersDilemma defect defect).fst = 2       := rfl
+      _ ≤ 3                                          := of_decide_eq_true rfl
+      _ = (prisonersDilemma cooperate cooperate).fst := rfl
+    ) (
+      by decide
+    )
+  )
+  h' h''
+/-
+会話:
+> me: h' h'' は absurd みたいなもの描かないんだね、なんかそんな記憶があったけど
+> muse: はい、要りません [略...]
+> me: P と \not P を使って False じゃない時でもゴールを作る感じか
+> muse: その通りです。仕組みは2段になっています。
+1段目：¬P は P → False なので、P と ¬P が両方あれば適用して False が作れます。
+2段目：False はコンストラクタが1つもない型なので、False の値からは match の行き先として何でも作れます（False.elim）。前提が矛盾していれば結論は何でもよい、という爆発原理です。
+absurd はこの2段をまとめたもので、中身はだいたい False.elim (hn h) です。
+-/
+
+theorem defect_defect_is_not_pareto_optimal2 : ¬ IsParetoOptimal prisonersDilemma defect defect :=
+  fun h => h cooperate cooperate (by unfold IsParetoImprovement; decide)
+
+#check @Int.not_lt
+      -- Int.not_lt.mpr: b ≤ a → ¬ a < b
+#check @Int.not_lt.mp
+      -- Int.not_lt.mp: ¬ a < b → b ≤ a
+#check @Int.not_lt.mpr
+      -- Int.not_lt.mpr: b ≤ a → ¬ a < b
+-- (3, 3) is Pareto optimal for the prisoners' dilemma
+theorem cooperate_cooperate_is_pareto_optimal : IsParetoOptimal prisonersDilemma cooperate cooperate :=
+  fun a' b' h => match a', b', h with
+    -- (3, 3) vs (3, 3)
+    | cooperate, cooperate, Or.inl ⟨_, hgt⟩ =>
+      -- 丁寧に矛盾を示す
+
+      -- 仮定より 3 < 3 となる
+      have h_3gt3 : (3: Int) < 3 := hgt
+
+      -- しかし当然 3 ≤ 3
+      have h_3ge3 : (3: Int) ≤ 3 := by decide
+
+      -- 3 ≤ 3 より 3 < 3 は成り立たない (a ≤ b → ¬ b < a)
+      have h_not_3gt3 : ¬ ((3: Int) < 3) := (Int.not_lt.mpr h_3ge3)
+
+      -- よって矛盾
+      absurd h_3gt3 h_not_3gt3
+    | cooperate, cooperate, Or.inr ⟨hgt, _⟩ =>
+      -- 上の照明で必要だったのは仮定を正面から否定する命題 ¬ ((3: Int) < 3) で、これは何もなしに当然導ける
+      have h_not_3lt3: ¬ ((3: Int) < 3) := Int.not_lt.mpr (by decide)
+      -- よって矛盾
+      absurd hgt h_not_3lt3
+    -- (3, 3) vs (1, 4)
+    | cooperate, defect, Or.inl ⟨hgte, _⟩ =>
+      -- 完成版、仮定と当然導ける計算から矛盾を導く
+      absurd hgte (by decide)
+    | cooperate, defect, Or.inr ⟨hgt, _⟩ => absurd hgt (by decide)
+    -- (3, 3) vs (4, 1)
+    | defect, cooperate, h =>
+      -- Or ごと計算して矛盾を導く
+      absurd h (by
+      -- ゴールは ¬ (IsParetoImprovement ...)
+      -- unfold IsParetoImprovement でゴールを計算可能な形に展開
+      -- ¬ ((prisonersDilemma ... ∧ (prisonersDilemma ...)) ∨ (...))
+      unfold IsParetoImprovement
+      -- 計算すると ¬ (3 ≤ 1)、これは 1 < 3 から導ける
+      decide
+    )
+    -- (3, 3) vs (2, 2)
+    | defect, defect, h => absurd h (by unfold IsParetoImprovement; decide)
